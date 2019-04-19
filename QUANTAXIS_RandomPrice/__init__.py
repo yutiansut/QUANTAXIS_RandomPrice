@@ -3,7 +3,7 @@ import pandas as pd
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import click
 
 class OrnsteinUhlenbeckActionNoise:
 
@@ -42,6 +42,13 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
         item['LastPrice'] = (ou_noise()+1)*0.2*price + 0.8*price
 
     return data
+
+
+@click.command()
+@click.option('price',default=3600)
+@click.option('code', default='rb1905')
+def generate(price, code):
+    print(get_random_price(price, code))
 
 
 if __name__ == '__main__':
