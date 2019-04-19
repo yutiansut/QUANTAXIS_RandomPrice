@@ -45,8 +45,8 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
 
 
 @click.command()
-@click.option('price',default=3600)
-@click.option('code', default='rb1905')
+@click.option('--price',default=3600)
+@click.option('--code', default='rb1905')
 def generate(price, code):
     print(get_random_price(price, code))
 
