@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import click
 import random
 import copy
+from QUANTAXIS.QAUtil.QADate_trade import QA_util_get_last_day
+from QUANTAXIS.QAUtil.QADate import QA_util_date_int2str, QA_util_date_str2int
 
 
 class OrnsteinUhlenbeckActionNoise:
@@ -39,7 +41,7 @@ time_index = pd.timedelta_range('21:00:00.500000', '23:00:00', freq='500ms').tol
     pd.timedelta_range('13:30:00.500000', '15:00:00', freq='500ms').tolist()
 
 
-def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.2, theta=0.15, dt=1e-2, ifprint=False):
+def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.2, theta=0.15, dt=1e-2, ifprint=False, weight=0.1):
     ou_noise = OrnsteinUhlenbeckActionNoise(mu=np.array(mu))
 
     data = []
@@ -49,7 +51,8 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
         'UpdateMillisec': '',
         'LastPrice': '',
         'Volume': 0,
-        'TradingDay': tradingDay
+        'TradingDay': tradingDay,
+        'ActionDay': QA_util_date_str2int(QA_util_get_last_day(QA_util_date_int2str(tradingDay)))
     }
     for item in time_index:
         x = str(item).split()[2]
@@ -59,8 +62,14 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
             tick_pickle['UpdateMillisec'] = 0
 
         tick_pickle['UpdateTime'] = x.split('.')[0]
+        if tick_pickle['UpdateTime'].time >= 21:
+            tick_pickle['ActionDay'] = QA_util_date_str2int(
+                QA_util_get_last_day(QA_util_date_int2str(tick_pickle['TradingDay'])))
+        else:
+            tick_pickle['ActionDay'] = tick_pickle['TradingDay']
         tick_pickle['Volume'] += random.randint(50, 5000)
-        tick_pickle['LastPrice'] = (ou_noise()+1)*0.2*price + 0.8*price
+        tick_pickle['LastPrice'] = (ou_noise()+1) * \
+            weight*price + (1-weight)*price
         data.append(copy.deepcopy(tick_pickle))
         if ifprint:
             print(tick_pickle)
@@ -77,10 +86,12 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
 @click.option('--dt', default=1e-2)
 @click.option('--ifprint', default=True)
 def generate(price, code, tradingday, mu, sigma, theta, dt, ifprint):
-    data = get_random_price(price, code, tradingday, mu, sigma, theta, dt, ifprint)
+    data = get_random_price(price, code, tradingday,
+                            mu, sigma, theta, dt, ifprint)
     print(data)
     data.LastPrice.plot()
     plt.show()
+
 
 if __name__ == '__main__':
     print(get_random_price(3600))
