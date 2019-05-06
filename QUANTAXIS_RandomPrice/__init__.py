@@ -62,7 +62,7 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
             tick_pickle['UpdateMillisec'] = 0
 
         tick_pickle['UpdateTime'] = x.split('.')[0]
-        if item.time >= 21:
+        if item.seconds>=75600:
             tick_pickle['ActionDay'] = QA_util_date_str2int(
                 QA_util_get_last_day(QA_util_date_int2str(tick_pickle['TradingDay'])))
         else:
