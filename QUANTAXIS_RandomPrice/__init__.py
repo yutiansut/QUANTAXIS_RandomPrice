@@ -54,6 +54,7 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
         'TradingDay': tradingDay,
         'ActionDay': QA_util_date_str2int(QA_util_get_last_day(QA_util_date_int2str(tradingDay)))
     }
+    
     for item in time_index:
         x = str(item).split()[2]
         if '.' in x:
