@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import click
 import random
 import copy
+import re
 from QUANTAXIS.QAUtil.QADate_trade import QA_util_get_last_day
 from QUANTAXIS.QAUtil.QADate import QA_util_date_int2str, QA_util_date_str2int
+from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE
 
 
 class OrnsteinUhlenbeckActionNoise:
@@ -35,13 +37,16 @@ class OrnsteinUhlenbeckActionNoise:
         return 'OrnsteinUhlenbeckActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
 
 
-time_index = pd.timedelta_range('21:00:00.500000', '23:00:00', freq='500ms').tolist() +\
+time_index_future = pd.timedelta_range('21:00:00.500000', '23:00:00', freq='500ms').tolist() +\
     pd.timedelta_range('09:00:00.500000', '10:15:00', freq='500ms').tolist() +\
     pd.timedelta_range('10:30:00.500000', '11:30:00', freq='500ms').tolist() +\
     pd.timedelta_range('13:30:00.500000', '15:00:00', freq='500ms').tolist()
 
+time_index_stock = pd.timedelta_range('09:30:00.500000', '11:30:00', freq='500ms').tolist() +\
+    pd.timedelta_range('13:00:00.500000', '15:00:00', freq='500ms').tolist()
 
-def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.2, theta=0.15, dt=1e-2, ifprint=False, weight=0.1):
+
+def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.2, theta=0.15, dt=1e-2, ifprint=False, weight=0.1, market_type=None):
     ou_noise = OrnsteinUhlenbeckActionNoise(mu=np.array(mu))
 
     data = []
@@ -54,7 +59,16 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
         'TradingDay': tradingDay,
         'ActionDay': QA_util_date_str2int(QA_util_get_last_day(QA_util_date_int2str(tradingDay)))
     }
-    
+
+    if market_type is None:
+        market_type = MARKET_TYPE.FUTURE_CN if re.search(
+            r'[a-zA-z]+', code) else MARKET_TYPE.STOCK_CN
+
+    if market_type == MARKET_TYPE.FUTURE_CN:
+        time_index = time_index_future
+    else:
+        time_index = time_index_stock
+
     for item in time_index:
         x = str(item).split()[2]
         if '.' in x:
@@ -63,7 +77,7 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
             tick_pickle['UpdateMillisec'] = 0
 
         tick_pickle['UpdateTime'] = x.split('.')[0]
-        if item.seconds>=75600:
+        if (item.seconds >= 75600) & (market_type == MARKET_TYPE.FUTURE_CN):
             tick_pickle['ActionDay'] = QA_util_date_str2int(
                 QA_util_get_last_day(QA_util_date_int2str(tick_pickle['TradingDay'])))
         else:
@@ -86,9 +100,10 @@ def get_random_price(price, code='rb1905', tradingDay='20181119', mu=0, sigma=0.
 @click.option('--theta', default=0.15)
 @click.option('--dt', default=1e-2)
 @click.option('--ifprint', default=True)
-def generate(price, code, tradingday, mu, sigma, theta, dt, ifprint):
+@click.option('--market_type', default=None)
+def generate(price, code, tradingday, mu, sigma, theta, dt, ifprint, market_type):
     data = get_random_price(price, code, tradingday,
-                            mu, sigma, theta, dt, ifprint)
+                            mu, sigma, theta, dt, ifprint, market_type)
     print(data)
     data.LastPrice.plot()
     plt.show()
